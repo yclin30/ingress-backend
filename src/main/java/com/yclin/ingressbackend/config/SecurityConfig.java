@@ -21,22 +21,27 @@ public class SecurityConfig {
     private final AuthenticationProvider authenticationProvider;
     private final JwtAuthenticationFilter jwtAuthFilter;
 
+    // 定义需要公开访问的 URL 列表
+    private static final String[] PUBLIC_URLS = {
+            "/api/auth/**",
+            "/ws/**",
+            "/swagger-ui.html",
+            "/swagger-ui/**",
+            "/v3/api-docs/**"
+    };
+
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
                 .csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(auth -> auth
-                        // **核心修正**: 明确允许对 WebSocket 握手端点的匿名访问
-                        // 这个规则必须添加，否则 Spring Security 会拦截并拒绝初始的 HTTP Upgrade 请求
-                        .requestMatchers("/ws/**").permitAll()
+                        // **核心修正**: 统一配置所有需要公开访问的 URL
+                        .requestMatchers(PUBLIC_URLS).permitAll()
 
-                        // 规则 2: 管理员模块
+                        // 规则 2: 管理员模块需要 ADMIN 角色
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
 
-                        // 规则 3: 认证模块
-                        .requestMatchers("/api/auth/**").permitAll()
-
-                        // 规则 4: 其他所有请求都需要认证
+                        // 规则 3: 其他所有请求都需要认证
                         .anyRequest().authenticated()
                 )
                 .sessionManagement(session -> session
