@@ -4,7 +4,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationProvider;
-import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity; // <-- 新增 import
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
@@ -14,7 +14,7 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 
 @Configuration
 @EnableWebSecurity
-@EnableMethodSecurity // <-- **关键修正**
+@EnableMethodSecurity // 开启方法级安全注解，如 @PreAuthorize
 @RequiredArgsConstructor
 public class SecurityConfig {
 
@@ -26,13 +26,14 @@ public class SecurityConfig {
         http
                 .csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(auth -> auth
-                        // 公开访问：允许任何人访问 /api/auth/** 下的所有端点
+                        // 1. 管理员模块: 所有 /api/admin/** 的请求都需要 ADMIN 角色
+                        .requestMatchers("/api/admin/**").hasRole("ADMIN")
+                        // 2. 公开访问: 允许任何人访问 /api/auth/**
                         .requestMatchers("/api/auth/**").permitAll()
-                        // 其他所有请求都需要认证
+                        // 3. 其他所有请求都需要认证
                         .anyRequest().authenticated()
                 )
                 .sessionManagement(session -> session
-                        // 设置为无状态，Spring Security 不会创建或使用 HttpSession
                         .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
                 )
                 .authenticationProvider(authenticationProvider)

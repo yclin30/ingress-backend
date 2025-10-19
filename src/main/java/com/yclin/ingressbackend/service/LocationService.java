@@ -22,25 +22,34 @@ public class LocationService {
 
     private final LocationRepository locationRepository;
     private final ResonatorRepository resonatorRepository;
-    // 不再需要 UserRepository
     private final GeometryFactory geometryFactory = new GeometryFactory();
 
     @Transactional(readOnly = true)
     public List<LocationDetailDto> getLocationsInBounds(double minLat, double minLon, double maxLat, double maxLon) {
-        Coordinate[] coords = {
-                new Coordinate(minLon, minLat), new Coordinate(maxLon, minLat),
-                new Coordinate(maxLon, maxLat), new Coordinate(minLon, maxLat),
-                new Coordinate(minLon, minLat)
+        Coordinate[] coords = new Coordinate[]{
+                new Coordinate(minLon, minLat),
+                new Coordinate(maxLon, minLat),
+                new Coordinate(maxLon, maxLat),
+                new Coordinate(minLon, maxLat),
+                new Coordinate(minLon, minLat) // 闭合环
         };
         Polygon boundingBox = geometryFactory.createPolygon(coords);
-        return locationRepository.findLocationsWithin(boundingBox).stream()
+
+        // **核心修正**:
+        // 为我们创建的查询多边形设置正确的 SRID (Spatial Reference System Identifier)。
+        // 必须与数据库中存储的点的 SRID (4326) 保持一致。
+        boundingBox.setSRID(4326);
+
+        List<Location> locations = locationRepository.findLocationsWithin(boundingBox);
+
+        return locations.stream()
                 .map(this::convertToLocationDetailDto)
                 .collect(Collectors.toList());
     }
 
+    // deployResonator 和 DTO 转换方法保持不变
     @Transactional
     public ResonatorDetailDto deployResonator(Long locationId, ResonatorDeployRequest request, User currentUser) {
-        // 不再需要重新加载，直接使用从控制器传入的“新鲜”用户实体。
         Location location = locationRepository.findById(locationId)
                 .orElseThrow(() -> new IllegalArgumentException("Location not found with id: " + locationId));
 
@@ -69,12 +78,12 @@ public class LocationService {
 
     private ResonatorDetailDto convertToResonatorDetailDto(Resonator resonator) {
         ResonatorDetailDto dto = new ResonatorDetailDto();
-        dto.setId(resonator.getId());
-        dto.setLevel(resonator.getLevel());
-        dto.setHealth(resonator.getHealth());
-        dto.setSlotNumber(resonator.getSlotNumber());
-        dto.setLocationId(resonator.getLocation().getId());
-        dto.setDeployerUserId(resonator.getDeployer().getId());
+        dto.setId( resonator.getId() );
+        dto.setLevel( resonator.getLevel() );
+        dto.setHealth( resonator.getHealth() );
+        dto.setSlotNumber( resonator.getSlotNumber() );
+        dto.setLocationId( resonator.getLocation().getId() );
+        dto.setDeployerUserId( resonator.getDeployer().getId() );
         return dto;
     }
 }
