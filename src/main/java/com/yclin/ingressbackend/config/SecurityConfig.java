@@ -14,7 +14,7 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 
 @Configuration
 @EnableWebSecurity
-@EnableMethodSecurity // 开启方法级安全注解，如 @PreAuthorize
+@EnableMethodSecurity
 @RequiredArgsConstructor
 public class SecurityConfig {
 
@@ -26,11 +26,17 @@ public class SecurityConfig {
         http
                 .csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(auth -> auth
-                        // 1. 管理员模块: 所有 /api/admin/** 的请求都需要 ADMIN 角色
+                        // **核心修正**: 明确允许对 WebSocket 握手端点的匿名访问
+                        // 这个规则必须添加，否则 Spring Security 会拦截并拒绝初始的 HTTP Upgrade 请求
+                        .requestMatchers("/ws/**").permitAll()
+
+                        // 规则 2: 管理员模块
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
-                        // 2. 公开访问: 允许任何人访问 /api/auth/**
+
+                        // 规则 3: 认证模块
                         .requestMatchers("/api/auth/**").permitAll()
-                        // 3. 其他所有请求都需要认证
+
+                        // 规则 4: 其他所有请求都需要认证
                         .anyRequest().authenticated()
                 )
                 .sessionManagement(session -> session
