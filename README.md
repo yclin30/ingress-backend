@@ -16,7 +16,7 @@
 *   **后端框架**: Spring Boot 3
 *   **语言**: Java 17
 *   **构建工具**: Maven
-*   **数据库**: H2 In-Memory Database
+*   **数据库**: PostgreSQL
 *   **数据访问**: Spring Data JPA / Hibernate
 *   **安全**: Spring Security 6
 *   **实时通信**: Spring WebSocket & STOMP
